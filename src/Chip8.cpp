@@ -4,8 +4,17 @@
 #include <cstring>
 #include <iostream>
 
+#include <stdio.h>
+
 #include "../include/Chip8.hpp"
 #include "../include/Fontset.hpp"
+
+#define KK(opcode)(opcode & 0x00FF)
+#define NNN(opcode)(opcode & 0x0FFF)
+#define nib(opcode)(opcode & 0x000F)
+
+#define VX(opcode)((opcode & 0x0F00) >> 8)
+#define VY(opcode)((opcode & 0x00F0) >> 4)
 
 const std::uint32_t START_ADDR   = 0x200;
 const std::uint32_t FONTSET_ADDR = 0x50;
@@ -73,3 +82,82 @@ bool CHIP8::LoadROM(const char *filename)
     return EXIT_FAILURE;
 }
 
+void CHIP8::EmulateCycle()
+{
+    // Fetch opcode
+    opcode = memory[PC] << 8 | memory[PC + 1];
+
+    // Decode
+    switch ((opcode & 0xF000) >> 12)
+    {
+        case 0x0:
+        {
+            switch (nib(opcode))
+            {
+                case 0xE0: // 00E0
+                {
+                    printf("Opcode: %04x\tCLS\n", opcode);
+                    std::memset(display, 0, sizeof display);
+                    drawFlag = true;
+                    PC += 2;
+                }
+                break;
+
+                default: printf("Unknown opcode [0x0000]: 0x%X\n", opcode); break;
+            }
+        }
+        break;
+
+        case 0x1: // 1NNN
+        {
+            printf("Opcode: %04x\tJMP $%03x\n", opcode, NNN(opcode));
+            PC = NNN(opcode);
+        }
+        break;
+
+        case 0x6: // 6XKK
+        {
+            printf("Opcode: %04x\tLD V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
+            V[VX(opcode)] = KK(opcode);
+            PC += 2;
+        }
+        break;
+
+        case 0x7: // 7XKK
+        {
+            printf("Opcode: %04x\tADD V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
+            V[VX(opcode)] += KK(opcode);
+            PC += 2;
+        }
+        break;
+
+        case 0xA: // ANNN
+        {
+            printf("Opcode: %04x\tLD I, $%03x\n", opcode, NNN(opcode));
+            I = NNN(opcode);
+            PC += 2;
+        }
+        break;
+
+        case 0xD: // DXYN
+        {
+            V[0xF] = 0;
+            std::uint16_t pixel;
+
+            for (int y = 0; y < nib(opcode); ++y)
+            {
+                pixel = memory[I + y];
+                for (int x = 0; x < 8; ++x)
+                {
+                    if (display[(V[VX(opcode)] + x) % 64] + ((V[VY(opcode)] + y) % 32) * 64)
+                    {
+                        V[0xF] = 1;
+                    }
+
+                    display[((V[VX(opcode)] + x) % 64) + (((V[VY(opcode)] + y) % 32) * 64)] ^= 1;
+                }
+            }
+        }
+        break;
+    }
+}
