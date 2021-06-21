@@ -1,12 +1,9 @@
-<p align="center" style="font-size:2.5rem">
-    CHIP-8 Interpreter
-</p>
-
+# CHIP-8 Interpreter
 
 
 CHIP-8 Interpreter made in C++, using SDL2.
 
-# Table of Contents
+## Table of Contents
 
 * [Installation](#installation)
 * [Usage](#usage)
