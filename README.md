@@ -16,7 +16,7 @@ To run this interpreter you'll need [GIT](https://git-scm.com/downloads), and [S
 ```bash
 $ git clone https://github.com/Garoze/Chip-8 chip8
 $ cd chip8
-$ ./configure.sh 
+$ ./configure.sh
 $ make
 ```
 
