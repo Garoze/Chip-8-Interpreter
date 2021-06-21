@@ -60,7 +60,7 @@ bool CHIP8::LoadROM(const char *filename)
     if (file.good())
     {
         file.seekg(0, std::ios::end);
-        int file_size = file.tellg();
+        size_t file_size = file.tellg();
         file.seekg(0, std::ios::beg);
 
         char* buffer = new char[file_size];
@@ -76,30 +76,30 @@ bool CHIP8::LoadROM(const char *filename)
 
         delete[] buffer;
 
-        return EXIT_SUCCESS;
+        return true;
     }
 
-    return EXIT_FAILURE;
+    return false;
 }
 
 void CHIP8::EmulateCycle()
 {
     // Fetch opcode
     opcode = memory[PC] << 8 | memory[PC + 1];
+    PC += 2;
 
     // Decode
     switch ((opcode & 0xF000) >> 12)
     {
         case 0x0:
         {
-            switch (nib(opcode))
+            switch (KK(opcode))
             {
                 case 0xE0: // 00E0
                 {
                     printf("Opcode: %04x\tCLS\n", opcode);
                     std::memset(display, 0, sizeof display);
                     drawFlag = true;
-                    PC += 2;
                 }
                 break;
 
@@ -119,7 +119,6 @@ void CHIP8::EmulateCycle()
         {
             printf("Opcode: %04x\tLD V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
             V[VX(opcode)] = KK(opcode);
-            PC += 2;
         }
         break;
 
@@ -127,7 +126,6 @@ void CHIP8::EmulateCycle()
         {
             printf("Opcode: %04x\tADD V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
             V[VX(opcode)] += KK(opcode);
-            PC += 2;
         }
         break;
 
@@ -135,28 +133,33 @@ void CHIP8::EmulateCycle()
         {
             printf("Opcode: %04x\tLD I, $%03x\n", opcode, NNN(opcode));
             I = NNN(opcode);
-            PC += 2;
         }
         break;
 
         case 0xD: // DXYN
         {
+            printf("Opcode: %04x\tDRAW V%01x, V%01x, %01x\n", opcode, VX(opcode), VY(opcode), nib(opcode));
             V[0xF] = 0;
-            std::uint16_t pixel;
+            std::uint8_t pixel;
 
             for (int y = 0; y < nib(opcode); ++y)
             {
                 pixel = memory[I + y];
                 for (int x = 0; x < 8; ++x)
                 {
-                    if (display[(V[VX(opcode)] + x) % 64] + ((V[VY(opcode)] + y) % 32) * 64)
+                    if ((pixel & (0x80 >> x)) != 0)
                     {
-                        V[0xF] = 1;
-                    }
+                        std::uint8_t X = (V[VX(opcode)] + x) % 64;
+                        std::uint8_t Y = (V[VY(opcode)] + y) % 32;
 
-                    display[((V[VX(opcode)] + x) % 64) + (((V[VY(opcode)] + y) % 32) * 64)] ^= 1;
+                        if (display[X + (Y * 64)])
+                            V[0xF] = 1;
+
+                        display[X + (Y * 64)] ^= 1;
+                    }
                 }
             }
+            drawFlag = true;
         }
         break;
     }
