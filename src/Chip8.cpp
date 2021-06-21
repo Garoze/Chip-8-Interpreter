@@ -1,6 +1,8 @@
+#include <random>
+#include <fstream>
 #include <cstdlib>
 #include <cstring>
-#include <random>
+#include <iostream>
 
 #include "../include/Chip8.hpp"
 #include "../include/Fontset.hpp"
@@ -29,7 +31,7 @@ CHIP8::CHIP8()
     // Load the font on memory
     for (int i = 0; i < 80; ++i)
     {
-        memory[i + FONTSET_ADDR] = FONTSET[i];
+        memory[FONTSET_ADDR + i] = FONTSET[i];
     }
 
     // Reseting timers
@@ -42,4 +44,32 @@ CHIP8::CHIP8()
 
 CHIP8::~CHIP8() {}
 
+bool CHIP8::LoadROM(const char *filename)
+{
+    std::ifstream file(filename, std::ios::binary | std::ios::in);
+
+    if (file.good())
+    {
+        file.seekg(0, std::ios::end);
+        int file_size = file.tellg();
+        file.seekg(0, std::ios::beg);
+
+        char* buffer = new char[file_size];
+
+        file.read(buffer, file_size);
+        file.close();
+
+        if (file_size < (4096 - 512))
+            for (int i = 0; i < file_size; ++i)
+                memory[START_ADDR + i] = buffer[i];
+        else
+            std::cerr << "The file is too big!" << std::endl;
+
+        delete[] buffer;
+
+        return EXIT_SUCCESS;
+    }
+
+    return EXIT_FAILURE;
+}
 
