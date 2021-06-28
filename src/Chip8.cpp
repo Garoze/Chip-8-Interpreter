@@ -415,7 +415,8 @@ void CHIP8::EmulateCycle()
                 case 0x29: // FX29
                 {
                     printf("Opcode: %04x\tLD F, V%01x\n", opcode, VX(opcode));
-                    I = V[VX(opcode)] * 0.5;
+                    // I = V[VX(opcode)] * 0.5;
+                    I = (V[VX(opcode)] * 5) + FONTSET_ADDR;
                     PC += 2;
                 }
                 break;
@@ -423,9 +424,9 @@ void CHIP8::EmulateCycle()
                 case 0x33: // FX33
                 {
                     printf("Opcode: %04x\tLD B, V%01x\n", opcode, VX(opcode));
-                    memory[I] = V[VX(opcode)] % 10;
-                    memory[I + 1] = (V[VX(opcode)] / 10) % 10;
-                    memory[I + 2] = (V[VX(opcode)] / 100) % 10;
+                    memory[I] = V[VX(opcode)] / 100;
+                    memory[I + 1] = (V[VX(opcode)] % 100) / 10;
+                    memory[I + 2] = V[VX(opcode)] % 10;
                     PC += 2;
                 }
                 break;
