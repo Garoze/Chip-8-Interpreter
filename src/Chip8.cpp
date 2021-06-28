@@ -86,7 +86,6 @@ void CHIP8::EmulateCycle()
 {
     // Fetch opcode
     opcode = memory[PC] << 8 | memory[PC + 1];
-    PC += 2;
 
     // Decode
     switch ((opcode & 0xF000) >> 12)
@@ -100,6 +99,15 @@ void CHIP8::EmulateCycle()
                     printf("Opcode: %04x\tCLS\n", opcode);
                     std::memset(display, 0, sizeof display);
                     drawFlag = true;
+                    PC += 2;
+                }
+                break;
+
+                case 0xEE: // 00EE
+                {
+                    printf("Opcode: %04x\tRET\n", opcode);
+                    PC = stack[--SP];
+                    PC += 2;
                 }
                 break;
 
@@ -115,10 +123,49 @@ void CHIP8::EmulateCycle()
         }
         break;
 
+        case 0x2:  //2NNN
+        {
+           printf("Opcode: %04x\tCALL $%03x\n", opcode, NNN(opcode));
+           stack[SP++] = PC;
+           PC = NNN(opcode);
+        }
+        break;
+
+        case 0x3: //3XKK
+        {
+            printf("Opcode: %04x\tSE V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
+            if (V[VX(opcode)] == KK(opcode))
+                PC += 4;
+            else
+                PC += 2;
+        }
+        break;
+
+        case 0x4: // 4XKK
+        {
+            printf("Opcode: %04x\tSNE V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
+            if (V[VX(opcode)] != KK(opcode))
+                PC += 4;
+            else
+                PC += 2;
+        }
+        break;
+
+        case 0x5: //5XY0
+        {
+            printf("Opcode: %04x\tSE V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+            if (V[VX(opcode)] == V[VY(opcode)])
+                PC += 4;
+            else
+                PC += 2;
+        }
+        break;
+
         case 0x6: // 6XKK
         {
             printf("Opcode: %04x\tLD V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
             V[VX(opcode)] = KK(opcode);
+            PC += 2;
         }
         break;
 
@@ -126,6 +173,107 @@ void CHIP8::EmulateCycle()
         {
             printf("Opcode: %04x\tADD V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
             V[VX(opcode)] += KK(opcode);
+            PC += 2;
+        }
+        break;
+
+        case 0x8:
+        {
+            switch (nib(opcode))
+            {
+                case 0x0: // 8XY0
+                {
+                    printf("Opcode: %04x\tLD V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+                    V[VX(opcode)] = V[VY(opcode)];
+                    PC += 2;
+                }
+                break;
+
+                case 0x1: // 8XY1
+                {
+                    printf("Opcode: %04x\tOR V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+                    V[VX(opcode)] |= V[VY(opcode)];
+                    PC += 2;
+                }
+                break;
+
+                case 0x2: // 8XY2
+                {
+                    printf("Opcode: %04x\tAND V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+                    V[VX(opcode)] &= V[VY(opcode)];
+                    PC += 2;
+                }
+                break;
+
+                case 0x3: // 8XY3
+                {
+                    printf("Opcode: %04x\tXOR V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+                    V[VX(opcode)] ^= V[VY(opcode)];
+                    PC += 2;
+                }
+                break;
+
+                case 0x4: // 8XY4
+                {
+                    printf("Opcode: %04x\tADD V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+                    std::uint8_t flag = (V[VY(opcode)] > (0xFF - V[VX(opcode)])) ? 1 : 0;
+                    V[VX(opcode)] += V[VY(opcode)];
+                    V[0xF] = flag;
+                    PC += 2;
+                }
+                break;
+
+                case 0x5: // 8XY5
+                {
+                    printf("Opcode: %04x\tSUB V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+                    std::uint8_t flag = (V[VY(opcode)] > V[VX(opcode)]) ? 0 : 1;
+                    V[VX(opcode)] -= V[VY(opcode)];
+                    V[0xF] = flag;
+                    PC += 2;
+                }
+                break;
+
+                case 0x6: // 8XY6
+                {
+                    printf("Opcode: %04x\tSHR V%01x\n", opcode, VX(opcode));
+                    std::uint8_t flag = V[VX(opcode)] & 0x1;
+                    V[VX(opcode)] >>= 1;
+                    PC += 2;
+                }
+                break;
+
+                case 0x7: // 8XY7
+                {
+                    printf("Opcode: %04x\tSUBN V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+                    std::uint8_t flag = (V[VY(opcode)] > V[VX(opcode)]) ? 1 : 0;
+                    V[VX(opcode)] = V[VY(opcode)] - V[VX(opcode)];
+                    V[0xF] = flag;
+                    PC += 2;
+                }
+                break;
+
+                case 0xE: // 8XYE
+                {
+                    printf("Opcode: %04x\tSHL V%01x {, V%01x}\n", opcode, VX(opcode), VY(opcode));
+                    std::uint8_t flag = V[VX(opcode)] >> 7;
+                    V[VX(opcode)] <<= 1;
+                    V[0xF] = flag;
+                    PC += 2;
+                }
+                break;
+
+                default: printf("Unknown opcode [0x8000]: 0x%X\n", opcode); break;
+            }
+        }
+        break;
+
+        case 0x9: // 9XY0
+        {
+            printf("Opcode: %04x\tSNE V%01x, V%01x\n", opcode, VX(opcode), VY(opcode));
+            if (V[VX(opcode)] != V[VY(opcode)])
+                PC += 4;
+            else
+                PC += 2;
         }
         break;
 
@@ -133,6 +281,22 @@ void CHIP8::EmulateCycle()
         {
             printf("Opcode: %04x\tLD I, $%03x\n", opcode, NNN(opcode));
             I = NNN(opcode);
+            PC += 2;
+        }
+        break;
+
+        case 0xB: // BNNN
+        {
+            printf("Opcode: %04x\tJP V0, $%03x\n", opcode, NNN(opcode));
+            PC = V[0x0] + NNN(opcode);
+        }
+        break;
+
+        case 0xC: // CXKK
+        {
+            printf("Opcode: %04x\tRND V%01x, #%02x\n", opcode, VX(opcode), KK(opcode));
+            V[VX(opcode)] = (rand() % 0xFF) & KK(opcode);
+            PC += 2;
         }
         break;
 
@@ -160,7 +324,139 @@ void CHIP8::EmulateCycle()
                 }
             }
             drawFlag = true;
+            PC += 2;
         }
         break;
+
+        case 0xE:
+        {
+            switch (KK(opcode))
+            {
+                case 0x9E: // EX9E
+                {
+                    printf("Opcode: %04x\tSKP V%01x\n", opcode, VX(opcode));
+                    if (keypad[V[VX(opcode)]] != 0)
+                        PC += 4;
+                    else
+                        PC += 2;
+                }
+                break;
+
+                case 0xA1: // EXA1
+                {
+                    printf("Opcode: %04x\tSKNP V%01x\n", opcode, VX(opcode));
+                    if (V[VX(opcode)] == 0)
+                        PC += 4;
+                    else
+                        PC += 2;
+                }
+                break;
+
+                default: printf("Unknown opcode [0xE000]: 0x%X\n", opcode); break;
+            }
+        }
+        break;
+
+        case 0xF:
+        {
+            switch (KK(opcode))
+            {
+                case 0x07: // FX07
+                {
+                    printf("Opcode: %04x\tLD V%01x, DT\n", opcode, VX(opcode));
+                    V[VX(opcode)] = delay_timer;
+                    PC += 2;
+                }
+                break;
+
+                case 0x0A: // FX0A
+                {
+                    printf("Opcode: %04x\tLD V%01x, K\n", opcode, VX(opcode));
+                    bool key_pressed;
+
+                    for (int i = 0; i < 16; ++i)
+                        if (keypad[i] != 0)
+                        {
+                            V[VX(opcode)] = i;
+                            key_pressed = true;
+                        }
+
+                    if (!key_pressed) return;
+                    PC += 2;
+                }
+                break;
+
+                case 0x15: // FX15
+                {
+                    printf("Opcode: %04x\tLD DT, V%01x\n", opcode, VX(opcode));
+                    delay_timer = V[VX(opcode)];
+                    PC += 2;
+                }
+                break;
+
+                case 0x18: // FX18
+                {
+                    printf("Opcode: %04x\tLD ST, V%01x\n", opcode, VX(opcode));
+                    sound_timer = V[VX(opcode)];
+                    PC += 2;
+                }
+                break;
+
+                case 0x1E: // FX1E
+                {
+                    printf("Opcode: %04x\tADD I, V%01x\n", opcode, VX(opcode));
+                    std::uint8_t flag = (I + V[VX(opcode)] > 0xFFF) ? 1 : 0;
+                    I += V[VX(opcode)];
+                    V[0xF] = flag;
+                    PC += 2;
+                }
+                break;
+
+                case 0x29: // FX29
+                {
+                    printf("Opcode: %04x\tLD F, V%01x\n", opcode, VX(opcode));
+                    I = V[VX(opcode)] * 0.5;
+                    PC += 2;
+                }
+                break;
+
+                case 0x33: // FX33
+                {
+                    printf("Opcode: %04x\tLD B, V%01x\n", opcode, VX(opcode));
+                    memory[I] = V[VX(opcode)] % 10;
+                    memory[I + 1] = (V[VX(opcode)] / 10) % 10;
+                    memory[I + 2] = (V[VX(opcode)] / 100) % 10;
+                    PC += 2;
+                }
+                break;
+
+                case 0x55: // FX55
+                {
+                    printf("Opcode: %04x\tLD [I], V%01x\n", opcode, VX(opcode));
+                    for (int i = 0; i <= VX(opcode); ++i)
+                        memory[I + i] = V[i];
+
+                    I += VX(opcode) + 2;
+                    PC += 2;
+                }
+                break;
+
+                case 0x65: // FX65
+                {
+                    printf("Opcode: %04x\tLD V%01x, [I]\n", opcode, VX(opcode));
+                    for (int i = 0; i <= VX(opcode); ++i)
+                        V[i] = memory[I + i];
+
+                    I += VX(opcode) + 1;
+                    PC += 2;
+                }
+                break;
+
+                default: printf("Unknown opcode [0xF000]: 0x%X\n", opcode); break;
+            }
+        }
+        break;
+
+        default: printf("Opcode: %04x\tUnknkow\n", opcode); break;
     }
 }
