@@ -24,3 +24,5 @@ $(TARGET): $(OBJECT)
 
 clean:
 	@echo "Cleaning $(TARGET), $(BUILD)"; $(RM) -rf $(OBJECT) $(TARGET)
+
+.PHONY: all clean
