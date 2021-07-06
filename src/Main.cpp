@@ -105,6 +105,7 @@ load:
             SDL_RenderPresent(renderer);
         }
 
+        chip8.UpdateTimers();
         std::this_thread::sleep_for(std::chrono::microseconds(1200));
     }
 

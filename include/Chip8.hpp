@@ -9,6 +9,7 @@ public:
     ~CHIP8();
 
     void EmulateCycle();
+    void UpdateTimers();
     bool LoadROM(const char* filename);
 public:
     bool drawFlag;

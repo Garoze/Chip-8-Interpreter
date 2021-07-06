@@ -461,3 +461,13 @@ void CHIP8::EmulateCycle()
         default: printf("Opcode: %04x\tUnknkow\n", opcode); break;
     }
 }
+
+void CHIP8::UpdateTimers()
+{
+    if (delay_timer > 0)
+        --delay_timer;
+
+    if (sound_timer > 0)
+        --sound_timer;
+}
+
