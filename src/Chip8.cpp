@@ -345,7 +345,7 @@ void CHIP8::EmulateCycle()
                 case 0xA1: // EXA1
                 {
                     printf("Opcode: %04x\tSKNP V%01x\n", opcode, VX(opcode));
-                    if (V[VX(opcode)] == 0)
+                    if (keypad[V[VX(opcode)]] == 0)
                         PC += 4;
                     else
                         PC += 2;
@@ -372,7 +372,7 @@ void CHIP8::EmulateCycle()
                 case 0x0A: // FX0A
                 {
                     printf("Opcode: %04x\tLD V%01x, K\n", opcode, VX(opcode));
-                    bool key_pressed;
+                    bool key_pressed = false;
 
                     for (int i = 0; i < 16; ++i)
                         if (keypad[i] != 0)
