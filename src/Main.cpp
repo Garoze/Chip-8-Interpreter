@@ -95,7 +95,7 @@ load:
 
             for (int i = 0; i < 2048; ++i)
             {
-               std::uint8_t pixel = chip8.display[i];
+                std::uint8_t pixel = chip8.display[i];
                 temp_pixels[i] = (0x00FFFFFF * pixel) | 0xFF000000;
             }
 
