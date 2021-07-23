@@ -108,7 +108,5 @@ load:
         chip8.UpdateTimers();
         std::this_thread::sleep_for(std::chrono::microseconds(1200));
     }
-
     return EXIT_SUCCESS;
 }
-
